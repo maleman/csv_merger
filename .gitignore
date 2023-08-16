@@ -1,4 +1,4 @@
 # exclude everything
-logs/*
-output/*
-tmp_gz/*
+logs/
+output/
+tmp_gz/

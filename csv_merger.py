@@ -95,7 +95,7 @@ def append_gz_files(path, file_name,file_extension):
    list = glob.glob('./tmp_gz'+'/*.*')
    for cf in list:
       os.remove(cf)
-      
+
    fetch_gz_files(path,'./tmp_gz')
    tmp_f = []
    for extension in csv_file_extension:
@@ -213,7 +213,7 @@ def main(args):
    log_hello_str = 'Proccess starting at :'+datetime.datetime.today().strftime("%m-%d-%Y %H:%M:%S")
    print(log_hello_str)
    logging.info(log_hello_str)
-   args.append('C:/Users/STEVEN/Desktop/csv_test/csv_test/csv_test.tar.gz')
+   ##args.append('C:/Users/STEVEN/Desktop/csv_test/csv_test/csv_test.tar.gz')
    args_parameters(args)
    if(len(files) > 0):
       csv_data = get_csv_data(files)   
