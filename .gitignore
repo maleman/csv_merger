@@ -1,3 +1,4 @@
 # exclude everything
 logs/*
 output/*
+tmp_gz/*

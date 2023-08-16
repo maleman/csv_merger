@@ -17,22 +17,30 @@
 #* Date: 2023
 #**************************************************************************/
 
+import os
 import sys
 import csv
 import glob
-import os.path
+import gzip
+import tarfile
 import logging
 import datetime 
+
 
 files = []
 header = []
 delimiters = []
-csv_file_extension = ['csv','txt','cab']
+csv_file_extension = ['csv','txt','gz']
 
 def logging_init():
    now = datetime.datetime.today()
    file_name = str(now.year)+'-'+int_str(now.month)+'-'+int_str(now.day)+'_'+int_str(now.hour)+int_str(now.minute)
    logging.basicConfig(filename='./logs/'+file_name+'.log', encoding='utf-8', level=logging.DEBUG)
+
+def create_path_if_not_exists(path):
+   if not os.path.exists(path):
+     os.makedirs(path)
+     print("The new directory is created!")   
 
 def int_str(number):
    if(number < 9):
@@ -45,9 +53,17 @@ def exeception_handler(msg):
     print(msg)
     exit(0)
 
+def fetch_gz_files(path_gz,path_tmp):
+   #with open(path_gz, 'rb') as inf, open(path_tmp, 'wb', encoding='utf8') as tof:
+   #     decom_str = gzip.decompress(inf.read()).decode('utf-8')
+   #     tof.write(decom_str)
+   tar_file = tarfile.open(path_gz)
+   tar_file.extractall(path_tmp)
+   tar_file.close()
+
+
+
 def args_parameters(args):
-   print(args)
-   print(len(args) == 1 and os.path.exists(args[0]) and os.path.isdir(args[0]))
    if(len(args) == 1 and os.path.exists(args[0]) and os.path.isdir(args[0])):
       logging.info("Directory detected ")
       logging.info('Scanning directory :'+args[0])
@@ -55,14 +71,40 @@ def args_parameters(args):
       for extension in csv_file_extension:
          tmp_f = glob.glob(args[0]+'/*.'+extension)
          for file in tmp_f:
-            files.append(file)
-            logging.info('File added :'+file)
+            file_name, file_extension = os.path.splitext(file)
+            if(file_extension == '.gz'):
+               append_gz_files(file,file_name,file_extension)
+            else:     
+             files.append(file)
+             logging.info('File added :'+file_name+file_extension)
 
    else:
       for x in args:
         validate_directory(x)
-        files.append(x)
-        logging.info('File added :'+x)
+        file_name, file_extension = os.path.splitext(x)
+        if(file_extension == '.gz'):
+         append_gz_files(x,file_name,file_extension)
+        else: 
+         files.append(x)
+         logging.info('File added :'+file_name+file_extension)
+
+
+def append_gz_files(path, file_name,file_extension):
+   create_path_if_not_exists('./tmp_gz')
+   #clean tmp directory
+   list = glob.glob('./tmp_gz'+'/*.*')
+   for cf in list:
+      os.remove(cf)
+      
+   fetch_gz_files(path,'./tmp_gz')
+   tmp_f = []
+   for extension in csv_file_extension:
+    tmp_f = glob.glob('./tmp_gz'+'/*.'+extension)
+    for f in tmp_f:
+     files.append(f)
+     logging.info('File added :'+file_name+file_extension)   
+
+
 
 def validate_directory(path):
   check_file_exists = os.path.exists(path)
@@ -122,10 +164,13 @@ def get_body(csv_data, header):
                 ixd = csv_head.index(header[z])
                 if(ixd < 0 or ixd > len(csv_content[y])-1):
                    value = 'null'
+                   logging.info('Set null value on column : '+header[z]+' Line ('+str(y)+')')
                 else:
                    value = csv_content[y][ixd]
              except ValueError:
               value = 'null'
+              logging.info('Set null value on column : '+header[z]+' Line ('+str(y)+')')
+
              row.append(value)   
           body_final_rows.append(row)
    
@@ -138,34 +183,37 @@ def get_csv_data(files):
        logging.info('Openning file : '+files[x])
        print('Openning file : '+files[x])
        validate_directory(files[x]) 
-       with open(files[x], newline='') as csvfile:
-          csv_sample = csvfile.read(1024)
-          try:          
-             dialect = csv.Sniffer().sniff(csv_sample)
-             csvfile.seek(0)
-             reader = csv.reader(csvfile, dialect)
-             logging.info('Delimiter '+dialect.delimiter+' detected for file :'+files[x])
-          except:
-             head = csv_sample.splitlines()
-             delimiter = get_uncommon_delimiter(head[0])
-             csvfile.seek(0)
-             reader = csv.reader(csvfile, delimiter=delimiter)
-             logging.info('Delimiter '+delimiter+' detected for file :'+files[x])
-          
-          for row in reader:
-           rows.append(row)
-      
+       rows = get_rows_from_csv_file(files[x])
        csv_data.append(rows)
     
     return csv_data
 
-         
+def get_rows_from_csv_file(path_csv_file):
+   rows = []
+   with open(path_csv_file, newline='') as csvfile:
+      csv_sample = csvfile.read(1024)
+      try:          
+       dialect = csv.Sniffer().sniff(csv_sample)
+       csvfile.seek(0)
+       reader = csv.reader(csvfile, dialect)
+       logging.info('Delimiter '+dialect.delimiter+' detected for file :'+path_csv_file)
+      except:
+       head = csv_sample.splitlines()
+       delimiter = get_uncommon_delimiter(head[0])
+       csvfile.seek(0)
+       reader = csv.reader(csvfile, delimiter=delimiter)
+       logging.info('Delimiter '+delimiter+' detected for file :'+path_csv_file)
+          
+      for row in reader:
+       rows.append(row)
+   return rows
+
 def main(args):
    logging_init()
    log_hello_str = 'Proccess starting at :'+datetime.datetime.today().strftime("%m-%d-%Y %H:%M:%S")
    print(log_hello_str)
    logging.info(log_hello_str)
-   #files = ['C:/Users/STEVEN/Desktop/csv_test/allgy_nm_US_EMR_Allergy_2022SEP.txt']
+   args.append('C:/Users/STEVEN/Desktop/csv_test/csv_test/csv_test.tar.gz')
    args_parameters(args)
    if(len(files) > 0):
       csv_data = get_csv_data(files)   
