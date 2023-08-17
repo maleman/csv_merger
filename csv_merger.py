@@ -124,6 +124,7 @@ def get_uncommon_delimiter(line):
     return ''
 
 def create_csv(headers,rows, output_field_name):
+   create_path_if_not_exists('./output')
    with open(output_field_name, 'w', encoding='UTF8', newline='') as output_file:
       # using csv.writer method from CSV package
       write = csv.writer(output_file, quoting=csv.QUOTE_NONE, escapechar='\\')
@@ -209,13 +210,13 @@ def get_rows_from_csv_file(path_csv_file):
    return rows
 
 def main(args):
-   logging_init()
-   log_hello_str = 'Proccess starting at :'+datetime.datetime.today().strftime("%m-%d-%Y %H:%M:%S")
-   print(log_hello_str)
-   logging.info(log_hello_str)
-   ##args.append('C:/Users/STEVEN/Desktop/csv_test/csv_test/csv_test.tar.gz')
-   args_parameters(args)
-   if(len(files) > 0):
+   try:
+    logging_init()
+    log_hello_str = 'Proccess starting at :'+datetime.datetime.today().strftime("%m-%d-%Y %H:%M:%S")
+    print(log_hello_str)
+    logging.info(log_hello_str)
+    args_parameters(args)
+    if(len(files) > 0):
       csv_data = get_csv_data(files)   
       header = get_header(csv_data)  
       body = get_body(csv_data,header)
@@ -224,10 +225,16 @@ def main(args):
       log_bye_str = 'The process has finished successfully at :'+datetime.datetime.today().strftime("%m-%d-%Y %H:%M:%S")
       print(log_bye_str)
       logging.info(log_bye_str)
-   else:
+    else:
       print('Not file foud')
-      logging.info('Not file foud')
-
+      logging.error('Not file foud')
+   except Exception as ex:
+      print(ex)
+      logging.error(ex)
 
 argsx =  sys.argv[1:len(sys.argv)]
+if(len(argsx) == 0):
+   print('No input parameter has been set.')
+   logging.error('No input parameter has been set.')
+   exit(0)
 main(argsx)
